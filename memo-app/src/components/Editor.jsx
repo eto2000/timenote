@@ -3,7 +3,8 @@ import { getTimeStamp } from '../utils/datetime';
 
 /**
  * 전체 화면 텍스트 에디터 컴포넌트
- * - Enter 키 입력 시 현재 시간을 새 줄 앞에 자동 삽입
+ * - Enter: 줄바꿈 + 현재 시간 자동 삽입
+ * - Shift+Enter: 줄바꿈만
  * - 페이지 로드 시 자동 포커스
  */
 export default function Editor({ content, onChange }) {
@@ -13,7 +14,6 @@ export default function Editor({ content, onChange }) {
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.focus();
-      // 커서를 텍스트 끝으로 이동
       const len = textareaRef.current.value.length;
       textareaRef.current.setSelectionRange(len, len);
     }
@@ -22,10 +22,10 @@ export default function Editor({ content, onChange }) {
   const handleKeyDown = (e) => {
     if (e.key !== 'Enter') return;
 
-    // 일반 Enter: 기본 줄바꿈 동작 허용
-    if (!e.shiftKey) return;
+    // Shift+Enter: 일반 줄바꿈만
+    if (e.shiftKey) return;
 
-    // Shift+Enter: 시간 자동 삽입
+    // Enter: 줄바꿈 + 시간 자동 삽입
     e.preventDefault();
 
     const textarea = textareaRef.current;
@@ -40,7 +40,6 @@ export default function Editor({ content, onChange }) {
 
     onChange(newContent);
 
-    // requestAnimationFrame으로 DOM 업데이트 후 커서 위치 설정
     requestAnimationFrame(() => {
       if (textareaRef.current) {
         textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
