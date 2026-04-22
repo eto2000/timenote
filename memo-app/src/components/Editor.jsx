@@ -47,7 +47,7 @@ export default function Editor({ content, onChange }) {
   return (
     <textarea
       ref={textareaRef}
-      className="w-full h-full resize-none outline-none px-12 py-10 font-serif text-lg leading-8 bg-transparent text-stone-800 placeholder-stone-400"
+      className="w-full h-full resize-none outline-none px-12 py-10 font-sans text-base leading-7 bg-white text-gray-900 placeholder-gray-300"
       value={content}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={handleKeyDown}

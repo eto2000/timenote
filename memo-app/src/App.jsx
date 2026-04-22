@@ -32,7 +32,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-amber-50">
+    <div className="h-screen flex flex-col bg-white">
       <div className="flex-1 overflow-hidden">
         <Editor content={content} onChange={handleChange} />
       </div>
