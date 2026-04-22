@@ -22,7 +22,7 @@ export default function Toolbar({ onCopyAndNew }) {
   };
 
   return (
-    <div className="flex justify-center items-center px-12 py-4 border-t border-gray-100 bg-white">
+    <div className="flex justify-center items-center px-6 py-4 border-t border-gray-100 bg-white">
       <button
         onClick={handleClick}
         className="px-8 py-2 bg-gray-900 text-white rounded hover:bg-gray-700 active:bg-black transition-colors text-sm tracking-wide font-normal"

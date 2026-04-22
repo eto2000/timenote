@@ -22,6 +22,10 @@ export default function Editor({ content, onChange }) {
   const handleKeyDown = (e) => {
     if (e.key !== 'Enter') return;
 
+    // 일반 Enter: 기본 줄바꿈 동작 허용
+    if (!e.shiftKey) return;
+
+    // Shift+Enter: 시간 자동 삽입
     e.preventDefault();
 
     const textarea = textareaRef.current;
@@ -47,7 +51,7 @@ export default function Editor({ content, onChange }) {
   return (
     <textarea
       ref={textareaRef}
-      className="w-full h-full resize-none outline-none px-12 py-10 font-sans text-base leading-7 bg-white text-gray-900 placeholder-gray-300"
+      className="w-full h-full resize-none outline-none px-6 py-10 font-sans text-base leading-7 bg-white text-gray-900 placeholder-gray-300"
       value={content}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={handleKeyDown}
