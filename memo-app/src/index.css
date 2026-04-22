@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html, body, #root {
+    height: 100%;
+  }
+
+  /* 노트 느낌의 줄 배경 */
+  textarea {
+    background-image: repeating-linear-gradient(
+      to bottom,
+      transparent,
+      transparent calc(2rem - 1px),
+      #d6c9a8 calc(2rem - 1px),
+      #d6c9a8 2rem
+    );
+    background-attachment: local;
+    line-height: 2rem;
+  }
+}
