@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Editor from './components/Editor';
 import Toolbar from './components/Toolbar';
+import UpdateToast from './components/UpdateToast';
 import { getDateStamp } from './utils/datetime';
 
 const STORAGE_KEY = 'memo-app-content';
@@ -15,6 +16,33 @@ function getInitialContent() {
 
 export default function App() {
   const [content, setContent] = useState(getInitialContent);
+  const [showUpdate, setShowUpdate] = useState(false);
+  const newWorkerRef = useRef(null);
+
+  useEffect(() => {
+    if (!('serviceWorker' in navigator)) return;
+
+    navigator.serviceWorker.register('/sw.js').then((reg) => {
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        newWorkerRef.current = newWorker;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            // 새 SW 설치 완료 → 토스트 표시
+            setShowUpdate(true);
+          }
+        });
+      });
+    });
+  }, []);
+
+  const handleUpdate = () => {
+    if (newWorkerRef.current) {
+      newWorkerRef.current.postMessage({ type: 'SKIP_WAITING' });
+    }
+    setShowUpdate(false);
+    window.location.reload();
+  };
 
   const handleChange = (value) => {
     setContent(value);
@@ -22,10 +50,7 @@ export default function App() {
   };
 
   const handleCopyAndNew = async () => {
-    // 클립보드 복사 (실패 시 예외 throw → Toolbar에서 'Failed!' 표시)
     await navigator.clipboard.writeText(content);
-
-    // 새 문서 생성
     const newContent = getDateStamp() + '\n';
     localStorage.setItem(STORAGE_KEY, newContent);
     setContent(newContent);
@@ -37,6 +62,7 @@ export default function App() {
         <Editor content={content} onChange={handleChange} />
       </div>
       <Toolbar onCopyAndNew={handleCopyAndNew} />
+      {showUpdate && <UpdateToast onUpdate={handleUpdate} />}
     </div>
   );
 }
