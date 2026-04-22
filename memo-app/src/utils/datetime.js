@@ -1,13 +1,15 @@
 /**
- * 오늘 날짜를 yyyy.mm.dd 형식으로 반환
- * 예: "2026.04.22"
+ * 오늘 날짜를 yyyy.mm.dd (요일) 형식으로 반환
+ * 예: "2026.04.22 (수)"
  */
 export function getDateStamp() {
   const now = new Date();
   const yyyy = now.getFullYear();
   const mm = String(now.getMonth() + 1).padStart(2, '0');
   const dd = String(now.getDate()).padStart(2, '0');
-  return `${yyyy}.${mm}.${dd}`;
+  const days = ['일', '월', '화', '수', '목', '금', '토'];
+  const day = days[now.getDay()];
+  return `${yyyy}.${mm}.${dd} (${day})`;
 }
 
 /**
