@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 배경 -->
+  <rect width="512" height="512" rx="112" fill="#1a1a1a"/>
+  
+  <!-- 종이 -->
+  <rect x="120" y="96" width="272" height="340" rx="16" fill="#ffffff"/>
+  
+  <!-- 접힌 모서리 -->
+  <path d="M336 96 L392 152 L336 152 Z" fill="#e0e0e0"/>
+  <path d="M336 96 L392 152 L336 152 Z" fill="none" stroke="#cccccc" stroke-width="1"/>
+  
+  <!-- 날짜 줄 (굵은 선) -->
+  <rect x="152" y="176" width="160" height="10" rx="5" fill="#1a1a1a"/>
+  
+  <!-- 시간 + 텍스트 줄들 -->
+  <rect x="152" y="220" width="56" height="8" rx="4" fill="#888888"/>
+  <rect x="220" y="220" width="120" height="8" rx="4" fill="#cccccc"/>
+  
+  <rect x="152" y="252" width="56" height="8" rx="4" fill="#888888"/>
+  <rect x="220" y="252" width="88" height="8" rx="4" fill="#cccccc"/>
+  
+  <rect x="152" y="284" width="56" height="8" rx="4" fill="#888888"/>
+  <rect x="220" y="284" width="104" height="8" rx="4" fill="#cccccc"/>
+
+  <rect x="152" y="316" width="56" height="8" rx="4" fill="#888888"/>
+  <rect x="220" y="316" width="72" height="8" rx="4" fill="#cccccc"/>
+</svg>
