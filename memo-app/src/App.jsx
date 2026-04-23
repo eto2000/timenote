@@ -1,26 +1,38 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Editor from './components/Editor';
 import Toolbar from './components/Toolbar';
 import HistoryPanel from './components/HistoryPanel';
 import UpdateToast from './components/UpdateToast';
 import { getDateStamp } from './utils/datetime';
-import { saveToHistory, getHistoryList } from './utils/history';
+import { createDocId, upsertHistory, getHistoryList } from './utils/history';
 
 const STORAGE_KEY = 'memo-app-content';
+const DOC_ID_KEY = 'memo-app-doc-id';
 
-function getInitialContent() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved !== null) return saved;
-  return getDateStamp() + '\n';
+function getInitialState() {
+  const savedContent = localStorage.getItem(STORAGE_KEY);
+  const savedDocId = localStorage.getItem(DOC_ID_KEY);
+
+  if (savedContent !== null && savedDocId) {
+    return { content: savedContent, docId: savedDocId };
+  }
+
+  // 새 문서 생성
+  const newDocId = createDocId();
+  const newContent = getDateStamp() + '\n';
+  localStorage.setItem(STORAGE_KEY, newContent);
+  localStorage.setItem(DOC_ID_KEY, newDocId);
+  return { content: newContent, docId: newDocId };
 }
 
 export default function App() {
-  const [content, setContent] = useState(getInitialContent);
+  const [{ content, docId }, setState] = useState(getInitialState);
   const [showHistory, setShowHistory] = useState(false);
   const [historyItems, setHistoryItems] = useState([]);
   const [showUpdate, setShowUpdate] = useState(false);
   const editorRef = useRef(null);
   const newWorkerRef = useRef(null);
+  const debounceRef = useRef(null);
 
   // 서비스 워커 등록
   useEffect(() => {
@@ -46,20 +58,33 @@ export default function App() {
     window.location.reload();
   };
 
+  // debounce로 히스토리 업데이트 (1초 후)
+  const debouncedUpsert = useCallback((id, value) => {
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      upsertHistory(id, value);
+    }, 1000);
+  }, []);
+
   const handleChange = (value) => {
-    setContent(value);
+    setState((prev) => ({ ...prev, content: value }));
     localStorage.setItem(STORAGE_KEY, value);
+    debouncedUpsert(docId, value);
   };
 
   const handleCopyAndNew = async () => {
     await navigator.clipboard.writeText(content);
 
-    // 현재 내용을 히스토리에 저장
-    saveToHistory(content);
+    // 즉시 히스토리 저장 (debounce 취소 후 바로 저장)
+    clearTimeout(debounceRef.current);
+    upsertHistory(docId, content);
 
+    // 새 문서 생성
+    const newDocId = createDocId();
     const newContent = getDateStamp() + '\n';
     localStorage.setItem(STORAGE_KEY, newContent);
-    setContent(newContent);
+    localStorage.setItem(DOC_ID_KEY, newDocId);
+    setState({ content: newContent, docId: newDocId });
   };
 
   const handleToggleHistory = () => {
@@ -70,8 +95,14 @@ export default function App() {
   };
 
   const handleLoadHistory = (historyContent) => {
-    setContent(historyContent);
+    // 현재 문서 즉시 저장 후 히스토리 항목 불러오기
+    clearTimeout(debounceRef.current);
+    upsertHistory(docId, content);
+
+    const newDocId = createDocId();
     localStorage.setItem(STORAGE_KEY, historyContent);
+    localStorage.setItem(DOC_ID_KEY, newDocId);
+    setState({ content: historyContent, docId: newDocId });
     setShowHistory(false);
   };
 
