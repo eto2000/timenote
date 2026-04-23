@@ -19,6 +19,7 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [historyItems, setHistoryItems] = useState([]);
   const [showUpdate, setShowUpdate] = useState(false);
+  const editorRef = useRef(null);
   const newWorkerRef = useRef(null);
 
   // 서비스 워커 등록
@@ -77,7 +78,7 @@ export default function App() {
   return (
     <div className="relative h-screen flex flex-col bg-white" style={{ height: '100dvh' }}>
       <div className="flex-1 overflow-hidden">
-        <Editor content={content} onChange={handleChange} />
+        <Editor ref={editorRef} content={content} onChange={handleChange} />
       </div>
       <Toolbar onCopyAndNew={handleCopyAndNew} />
 
@@ -88,6 +89,15 @@ export default function App() {
         title="최근 기록"
       >
         ☰
+      </button>
+
+      {/* Enter 버튼 — 우측 하단 고정 */}
+      <button
+        onClick={() => editorRef.current?.insertNewline()}
+        className="fixed bottom-4 right-4 w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors text-sm z-30"
+        title="줄바꿈"
+      >
+        ↵
       </button>
 
       {showHistory && (

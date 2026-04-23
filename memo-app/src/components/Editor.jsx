@@ -1,11 +1,10 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { getTimeStamp } from '../utils/datetime';
 
 /**
  * 커서가 있는 줄이 보이도록 textarea를 스크롤
  */
 function scrollToCursor(textarea) {
-  // 커서 위치까지의 텍스트로 임시 div를 만들어 높이 측정
   const style = window.getComputedStyle(textarea);
   const mirror = document.createElement('div');
 
@@ -25,7 +24,6 @@ function scrollToCursor(textarea) {
   const textBeforeCursor = textarea.value.slice(0, textarea.selectionStart);
   mirror.textContent = textBeforeCursor;
 
-  // 커서 위치 마커
   const marker = document.createElement('span');
   marker.textContent = '|';
   mirror.appendChild(marker);
@@ -37,7 +35,6 @@ function scrollToCursor(textarea) {
   const lineHeight = parseInt(style.lineHeight) || 28;
   const visibleHeight = textarea.clientHeight;
 
-  // 커서가 보이는 영역 밖이면 스크롤
   if (cursorTop < textarea.scrollTop) {
     textarea.scrollTop = cursorTop - lineHeight;
   } else if (cursorTop + lineHeight > textarea.scrollTop + visibleHeight) {
@@ -49,10 +46,29 @@ function scrollToCursor(textarea) {
  * 전체 화면 텍스트 에디터 컴포넌트
  * - Enter: 줄바꿈 + 현재 시간 자동 삽입
  * - Shift+Enter: 줄바꿈만
- * - 페이지 로드 시 자동 포커스
+ * - ref.insertNewline(): 줄바꿈만 (외부 버튼용)
  */
-export default function Editor({ content, onChange }) {
+const Editor = forwardRef(function Editor({ content, onChange }, ref) {
   const textareaRef = useRef(null);
+
+  // 외부에서 호출 가능한 메서드
+  useImperativeHandle(ref, () => ({
+    insertNewline() {
+      const textarea = textareaRef.current;
+      if (!textarea) return;
+      const cursorPos = textarea.selectionStart;
+      const before = content.slice(0, cursorPos);
+      const after = content.slice(cursorPos);
+      const newContent = before + '\n' + after;
+      const newCursorPos = cursorPos + 1;
+      onChange(newContent);
+      requestAnimationFrame(() => {
+        textarea.focus();
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+        scrollToCursor(textarea);
+      });
+    },
+  }));
 
   // 페이지 로드 시 자동 포커스
   useEffect(() => {
@@ -102,4 +118,6 @@ export default function Editor({ content, onChange }) {
       spellCheck={false}
     />
   );
-}
+});
+
+export default Editor;
