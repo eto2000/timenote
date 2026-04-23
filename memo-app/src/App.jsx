@@ -75,14 +75,21 @@ export default function App() {
   };
 
   return (
-    <div className="relative h-screen flex flex-col bg-white">
+    <div className="relative h-screen flex flex-col bg-white" style={{ height: '100dvh' }}>
       <div className="flex-1 overflow-hidden">
         <Editor content={content} onChange={handleChange} />
       </div>
-      <Toolbar
-        onCopyAndNew={handleCopyAndNew}
-        onToggleHistory={handleToggleHistory}
-      />
+      <Toolbar onCopyAndNew={handleCopyAndNew} />
+
+      {/* 히스토리 버튼 — 좌측 하단 고정 */}
+      <button
+        onClick={handleToggleHistory}
+        className="fixed bottom-4 left-4 w-10 h-10 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors text-lg z-30"
+        title="최근 기록"
+      >
+        ☰
+      </button>
+
       {showHistory && (
         <HistoryPanel
           items={historyItems}

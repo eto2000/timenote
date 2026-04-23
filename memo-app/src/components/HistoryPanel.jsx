@@ -30,7 +30,7 @@ export default function HistoryPanel({ items, onLoad, onClose }) {
   return (
     <div
       ref={panelRef}
-      className="absolute bottom-16 left-1/2 -translate-x-1/2 w-80 max-h-96 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden flex flex-col z-40"
+      className="fixed bottom-16 left-4 w-80 max-h-96 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden flex flex-col z-40"
     >
       <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
         <span className="text-sm font-medium text-gray-700">최근 기록</span>
