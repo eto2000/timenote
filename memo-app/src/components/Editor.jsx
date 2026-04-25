@@ -84,16 +84,30 @@ const Editor = forwardRef(function Editor({ content, onChange }, ref) {
   const handleKeyDown = (e) => {
     if (e.key !== 'Enter') return;
 
-    // Shift+Enter: 줄바꿈만
-    if (e.shiftKey) return;
-
-    // Enter: 줄바꿈만
-    e.preventDefault();
-
     const textarea = textareaRef.current;
     const cursorPos = textarea.selectionStart;
     const before = content.slice(0, cursorPos);
     const after = content.slice(cursorPos);
+
+    // Shift+Enter: 줄바꿈 + 시간 자동 삽입
+    if (e.shiftKey) {
+      e.preventDefault();
+      const timeStamp = getTimeStamp();
+      const insertion = '\n' + timeStamp + ' ';
+      const newContent = before + insertion + after;
+      const newCursorPos = cursorPos + insertion.length;
+      onChange(newContent);
+      requestAnimationFrame(() => {
+        if (textareaRef.current) {
+          textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+          scrollToCursor(textareaRef.current);
+        }
+      });
+      return;
+    }
+
+    // Enter: 줄바꿈만
+    e.preventDefault();
     const newContent = before + '\n' + after;
     const newCursorPos = cursorPos + 1;
 
