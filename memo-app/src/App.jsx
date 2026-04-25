@@ -3,15 +3,18 @@ import Editor from './components/Editor';
 import Toolbar from './components/Toolbar';
 import HistoryPanel from './components/HistoryPanel';
 import UpdateToast from './components/UpdateToast';
+import SyncButton from './components/SyncButton';
 import { getDateStamp } from './utils/datetime';
 import { createDocId, upsertHistory, getHistoryList } from './utils/history';
+import { initSync, getStore, syncGetItem, syncSetItem } from './utils/sync';
 
+// localStorage key (AppSync prefix 없이 사용 — sync.js에서 prefix 처리)
 const STORAGE_KEY = 'memo-app-content';
 const DOC_ID_KEY = 'memo-app-doc-id';
 
 function getInitialState() {
-  const savedContent = localStorage.getItem(STORAGE_KEY);
-  const savedDocId = localStorage.getItem(DOC_ID_KEY);
+  const savedContent = syncGetItem(STORAGE_KEY);
+  const savedDocId = syncGetItem(DOC_ID_KEY);
 
   if (savedContent !== null && savedDocId) {
     return { content: savedContent, docId: savedDocId };
@@ -20,8 +23,8 @@ function getInitialState() {
   // 새 문서 생성
   const newDocId = createDocId();
   const newContent = getDateStamp() + '\n';
-  localStorage.setItem(STORAGE_KEY, newContent);
-  localStorage.setItem(DOC_ID_KEY, newDocId);
+  syncSetItem(STORAGE_KEY, newContent);
+  syncSetItem(DOC_ID_KEY, newDocId);
   return { content: newContent, docId: newDocId };
 }
 
@@ -30,9 +33,74 @@ export default function App() {
   const [showHistory, setShowHistory] = useState(false);
   const [historyItems, setHistoryItems] = useState([]);
   const [showUpdate, setShowUpdate] = useState(false);
+  const [syncState, setSyncState] = useState('idle'); // idle | syncing | ok | error | offline
   const editorRef = useRef(null);
   const newWorkerRef = useRef(null);
   const debounceRef = useRef(null);
+
+  // AppSync 초기화 및 이벤트 등록
+  useEffect(() => {
+    let store = null;
+
+    async function setup() {
+      await initSync();
+      store = getStore();
+      if (!store) return;
+
+      store.addEventListener('login', (e) => {
+        console.log('[Sync] 로그인:', e.detail.email);
+        setSyncState('ok');
+        // 로그인 후 서버 데이터를 pull해서 최신 상태로 갱신
+        store.pull();
+      });
+
+      store.addEventListener('logout', () => {
+        console.log('[Sync] 로그아웃');
+        setSyncState('idle');
+      });
+
+      store.addEventListener('synced', (e) => {
+        setSyncState('ok');
+        if (e.detail.direction === 'pull' && e.detail.changed?.length > 0) {
+          // 서버에서 변경사항이 내려왔으면 UI 갱신
+          reloadFromStorage();
+        }
+      });
+
+      store.addEventListener('error', (e) => {
+        console.warn('[Sync] 오류:', e.detail.operation, e.detail.error);
+        setSyncState('error');
+      });
+
+      store.addEventListener('online', () => {
+        setSyncState('ok');
+      });
+
+      store.addEventListener('offline', () => {
+        setSyncState('offline');
+      });
+
+      // 이미 로그인된 상태라면 상태 표시
+      if (store.isLoggedIn()) {
+        setSyncState('ok');
+      }
+    }
+
+    setup();
+
+    return () => {
+      // 이벤트 리스너는 store 인스턴스가 싱글톤이므로 cleanup 불필요
+    };
+  }, []);
+
+  // 서버 pull 후 localStorage에서 최신 데이터를 읽어 UI 갱신
+  const reloadFromStorage = useCallback(() => {
+    const latestContent = syncGetItem(STORAGE_KEY);
+    const latestDocId = syncGetItem(DOC_ID_KEY);
+    if (latestContent !== null && latestDocId) {
+      setState({ content: latestContent, docId: latestDocId });
+    }
+  }, []);
 
   // 서비스 워커 등록
   useEffect(() => {
@@ -68,8 +136,9 @@ export default function App() {
 
   const handleChange = (value) => {
     setState((prev) => ({ ...prev, content: value }));
-    localStorage.setItem(STORAGE_KEY, value);
+    syncSetItem(STORAGE_KEY, value);
     debouncedUpsert(docId, value);
+    setSyncState((prev) => (prev === 'offline' ? 'offline' : 'syncing'));
   };
 
   const handleCopyAndNew = async () => {
@@ -82,8 +151,8 @@ export default function App() {
     // 새 문서 생성
     const newDocId = createDocId();
     const newContent = getDateStamp() + '\n';
-    localStorage.setItem(STORAGE_KEY, newContent);
-    localStorage.setItem(DOC_ID_KEY, newDocId);
+    syncSetItem(STORAGE_KEY, newContent);
+    syncSetItem(DOC_ID_KEY, newDocId);
     setState({ content: newContent, docId: newDocId });
   };
 
@@ -100,8 +169,8 @@ export default function App() {
     upsertHistory(docId, content);
 
     const newDocId = createDocId();
-    localStorage.setItem(STORAGE_KEY, historyContent);
-    localStorage.setItem(DOC_ID_KEY, newDocId);
+    syncSetItem(STORAGE_KEY, historyContent);
+    syncSetItem(DOC_ID_KEY, newDocId);
     setState({ content: historyContent, docId: newDocId });
     setShowHistory(false);
   };
@@ -121,6 +190,11 @@ export default function App() {
       >
         ☰
       </button>
+
+      {/* 싱크 버튼 — 우측 하단에서 두 번째 */}
+      <div className="fixed bottom-16 right-4 z-30">
+        <SyncButton syncState={syncState} />
+      </div>
 
       {/* Enter 버튼 — 우측 하단 고정 */}
       <button

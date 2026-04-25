@@ -1,3 +1,5 @@
+import { syncGetItem, syncSetItem } from './sync';
+
 const HISTORY_KEY = 'memo-app-history';
 const MAX_AGE_DAYS = 7;
 
@@ -27,14 +29,14 @@ export function upsertHistory(docId, content) {
   };
 
   cleanOldHistory(history);
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  syncSetItem(HISTORY_KEY, JSON.stringify(history));
 }
 
 /**
  * 전체 히스토리 객체 반환
  */
 export function getHistory() {
-  const raw = localStorage.getItem(HISTORY_KEY);
+  const raw = syncGetItem(HISTORY_KEY);
   if (!raw) return {};
   try {
     return JSON.parse(raw);

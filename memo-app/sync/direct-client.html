@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AppSync SDK 예제</title>
+  <script src="https://appsync-one.vercel.app/sdk/appsync.js"></script>
+
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0, 0, 0, .08);
+      padding: 32px;
+      width: 100%;
+      max-width: 540px;
+    }
+
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #888;
+      margin-bottom: 24px;
+    }
+
+    #login-section {
+      text-align: center;
+    }
+
+    #login-section p {
+      margin-bottom: 20px;
+      color: #555;
+      font-size: 14px;
+    }
+
+    #app-section {
+      display: none;
+    }
+
+    .user-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #f0f7ff;
+      border-radius: 8px;
+      margin-bottom: 20px;
+    }
+
+    .user-bar .email {
+      font-size: 13px;
+      color: #555;
+      flex: 1;
+    }
+
+    .user-bar .version-badge {
+      font-size: 11px;
+      color: #888;
+      background: #e8e8e8;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
+
+    .section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      margin-bottom: 10px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .input-row input {
+      flex: 1;
+      padding: 9px 12px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color .15s;
+    }
+
+    .input-row input:focus {
+      border-color: #4285f4;
+    }
+
+    .todo-list {
+      list-style: none;
+      margin-bottom: 20px;
+      min-height: 40px;
+    }
+
+    .todo-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 4px;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+    }
+
+    .todo-list li:last-child {
+      border-bottom: none;
+    }
+
+    .todo-list li.done span {
+      text-decoration: line-through;
+      color: #aaa;
+    }
+
+    .todo-list li span {
+      flex: 1;
+    }
+
+    .todo-list .empty {
+      color: #bbb;
+      font-size: 13px;
+      padding: 12px 4px;
+    }
+
+    button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+
+    button:hover {
+      opacity: .85;
+    }
+
+    button:disabled {
+      opacity: .4;
+      cursor: default;
+    }
+
+    .btn-primary {
+      background: #4285f4;
+      color: #fff;
+    }
+
+    .btn-danger {
+      background: #ea4335;
+      color: #fff;
+      font-size: 12px;
+      padding: 6px 10px;
+    }
+
+    .btn-check {
+      background: #34a853;
+      color: #fff;
+      font-size: 12px;
+      padding: 6px 10px;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid #ddd;
+      color: #555;
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+
+    .log-panel {
+      background: #1e1e1e;
+      border-radius: 8px;
+      padding: 14px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .log-entry {
+      font-size: 12px;
+      font-family: monospace;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+
+    .log-entry.info {
+      color: #9cdcfe;
+    }
+
+    .log-entry.ok {
+      color: #4ec9b0;
+    }
+
+    .log-entry.error {
+      color: #f44747;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ccc;
+      display: inline-block;
+      margin-right: 6px;
+    }
+
+    .status-dot.syncing {
+      background: #fbbc04;
+      animation: pulse .8s infinite;
+    }
+
+    .status-dot.ok {
+      background: #34a853;
+    }
+
+    .status-dot.error {
+      background: #ea4335;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: .3;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+    <h1>AppSync SDK Demo</h1>
+    <p class="subtitle">AppSyncStorage 라이브러리 활용 예제</p>
+
+    <div id="login-section">
+      <p>AppSync SDK를 활용하여 데이터를 동기화합니다.</p>
+      <button class="btn-primary" onclick="handleLogin()" style="width: 100%; padding: 14px; margin-bottom: 8px;">
+        로그인
+      </button>
+      <p style="margin-top:16px; font-size:12px; color:#bbb;">
+        ※ SYNC_APP_ID를 설정 후 사용하세요.
+      </p>
+    </div>
+
+    <div id="app-section">
+      <div class="user-bar">
+        <span class="status-dot" id="status-dot"></span>
+        <span class="email" id="user-email">-</span>
+        <span class="version-badge">v<span id="sync-version">0</span></span>
+        <button class="btn-ghost" onclick="handleLogout()">로그아웃</button>
+      </div>
+
+      <p class="section-title">할 일 목록</p>
+      <div class="input-row">
+        <input id="todo-input" type="text" placeholder="할 일을 입력하세요..." maxlength="100"
+          onkeydown="if(event.key==='Enter') addTodo()" />
+        <button class="btn-primary" onclick="addTodo()">추가</button>
+      </div>
+
+      <ul class="todo-list" id="todo-list">
+        <li class="empty">할 일이 없습니다.</li>
+      </ul>
+
+      <div style="display: flex; gap: 8px; margin-bottom: 20px;">
+        <button class="btn-ghost" onclick="store.pull()">🔄 Pull</button>
+        <button class="btn-ghost" onclick="store.sync()">🔃 Sync</button>
+      </div>
+
+      <div class="log-panel">
+        <div id="log-output"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── ⚙️ 설정 ───────────────────────────────────────────────────────────
+    const SYNC_SERVER_URL = window.location.origin
+    const SYNC_APP_ID = '4126058f-ecff-4ab2-83a4-2229888b64d9' // 여기에 앱 ID 입력
+    // ────────────────────────────────────────────────────────────────────
+
+    const store = new AppSyncStorage({
+      appId: SYNC_APP_ID,
+      serverUrl: SYNC_SERVER_URL,
+      prefix: 'todo:',
+      autoSync: true,
+      debounce: 1000
+    })
+
+    let todos = []
+
+    store.addEventListener('login', (e) => {
+      log('ok', `로그인 성공: ${e.detail.email}`)
+      updateUI()
+    })
+
+    store.addEventListener('logout', () => {
+      log('info', '로그아웃됨')
+      updateUI()
+    })
+
+    store.addEventListener('online', (e) => {
+      log('info', `네트워크 복구됨 (Pending: ${e.detail.pending})`)
+      setOk()
+    })
+
+    store.addEventListener('offline', () => {
+      log('error', '네트워크 연결 끊김 (오프라인 모드)')
+      setError()
+    })
+
+    store.addEventListener('synced', (e) => {
+      log('ok', `${e.detail.direction} 완료 (v${e.detail.version})`)
+      document.getElementById('sync-version').textContent = e.detail.version
+      setOk()
+      loadTodos()
+      renderTodos()
+    })
+
+    store.addEventListener('error', (e) => {
+      log('error', `${e.detail.operation} 실패: ${e.detail.error}`)
+      setError()
+    })
+
+    store.addEventListener('conflict', (e) => {
+      log('info', `충돌 감지: ${e.detail.key}`)
+      // 기본적으로 server wins (아무것도 안 함) 
+      // e.detail.resolve(e.detail.local) 로 변경 가능
+    })
+
+    window.addEventListener('DOMContentLoaded', async () => {
+      await store.init()
+      updateUI()
+      if (store.isLoggedIn()) {
+        loadTodos()
+        renderTodos()
+        setOk()
+      }
+    })
+
+    function updateUI() {
+      const loggedIn = store.isLoggedIn()
+      document.getElementById('login-section').style.display = loggedIn ? 'none' : 'block'
+      document.getElementById('app-section').style.display = loggedIn ? 'block' : 'none'
+
+      if (loggedIn) {
+        document.getElementById('user-email').textContent = localStorage.getItem('_appsync_email')
+        document.getElementById('sync-version').textContent = localStorage.getItem('_appsync_version') || '0'
+      }
+    }
+
+    async function handleLogin() {
+      if (!SYNC_APP_ID || SYNC_APP_ID === 'YOUR_APP_ID') return alert('SYNC_APP_ID를 설정해주세요.')
+      try {
+        await store.login()
+      } catch (err) {
+        log('error', `Login failed: ${err.message}`)
+      }
+    }
+
+    function handleLogout() {
+      store.logout()
+      updateUI()
+    }
+
+    function loadTodos() {
+      const raw = store.getItem('list')
+      todos = raw ? JSON.parse(raw) : []
+    }
+
+    function saveTodos() {
+      store.setItem('list', JSON.stringify(todos))
+      setSyncing()
+    }
+
+    function addTodo() {
+      const input = document.getElementById('todo-input')
+      if (!input.value.trim()) return
+      const todo = { id: Date.now(), text: input.value.trim(), done: false }
+      todos.push(todo)
+      input.value = ''
+      renderTodos()
+      saveTodos()
+    }
+
+    function toggleTodo(id) {
+      const todo = todos.find(t => t.id === id)
+      if (!todo) return
+      todo.done = !todo.done
+      renderTodos()
+      saveTodos()
+    }
+
+    function deleteTodo(id) {
+      todos = todos.filter(t => t.id !== id)
+      renderTodos()
+      saveTodos()
+    }
+
+    function renderTodos() {
+      const list = document.getElementById('todo-list')
+      if (todos.length === 0) {
+        list.innerHTML = '<li class="empty">할 일이 없습니다.</li>'
+        return
+      }
+      list.innerHTML = todos.map(todo => `
+        <li class="${todo.done ? 'done' : ''}">
+          <span>${todo.text}</span>
+          <button class="btn-check" onclick="toggleTodo(${todo.id})">${todo.done ? '↩' : '✓'}</button>
+          <button class="btn-danger" onclick="deleteTodo(${todo.id})">✕</button>
+        </li>
+      `).join('')
+    }
+
+    function setSyncing() { document.getElementById('status-dot').className = 'status-dot syncing' }
+    function setOk() { document.getElementById('status-dot').className = 'status-dot ok' }
+    function setError() { document.getElementById('status-dot').className = 'status-dot error' }
+
+    function log(level, msg) {
+      const out = document.getElementById('log-output')
+      const el = document.createElement('div')
+      el.className = `log-entry ${level}`
+      el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`
+      out.appendChild(el)
+      out.scrollTop = out.scrollHeight
+    }
+  </script>
+</body>
+
+</html>
