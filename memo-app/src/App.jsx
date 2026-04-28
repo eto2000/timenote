@@ -20,16 +20,15 @@ function getInitialState() {
     return { content: savedContent, docId: savedDocId };
   }
 
-  // 새 문서 생성
+  // 로컬에 데이터가 없을 때: 싱크 pull 완료 후 데이터가 내려올 수 있으므로
+  // 아직 저장하지 않고 임시 상태만 반환한다. (pendingNew 플래그로 표시)
   const newDocId = createDocId();
   const newContent = getDateStamp() + '\n';
-  syncSetItem(STORAGE_KEY, newContent);
-  syncSetItem(DOC_ID_KEY, newDocId);
-  return { content: newContent, docId: newDocId };
+  return { content: newContent, docId: newDocId, pendingNew: true };
 }
 
 export default function App() {
-  const [{ content, docId }, setState] = useState(getInitialState);
+  const [{ content, docId, pendingNew }, setState] = useState(getInitialState);
   const [showHistory, setShowHistory] = useState(false);
   const [historyItems, setHistoryItems] = useState([]);
   const [showUpdate, setShowUpdate] = useState(false);
@@ -37,6 +36,12 @@ export default function App() {
   const editorRef = useRef(null);
   const newWorkerRef = useRef(null);
   const debounceRef = useRef(null);
+  const pendingNewRef = useRef(pendingNew);
+
+  // pendingNew 상태가 바뀔 때 ref 동기화
+  useEffect(() => {
+    pendingNewRef.current = pendingNew;
+  }, [pendingNew]);
 
   // AppSync 초기화 및 이벤트 등록
   useEffect(() => {
@@ -61,8 +66,9 @@ export default function App() {
 
       store.addEventListener('synced', (e) => {
         setSyncState('ok');
-        if (e.detail.direction === 'pull' && e.detail.changed?.length > 0) {
-          // 서버에서 변경사항이 내려왔으면 UI 갱신
+        if (e.detail.direction === 'pull') {
+          // pull 완료 후 서버 데이터가 있으면 UI 갱신
+          // pendingNew 상태(로컬 데이터 없이 시작)라면 서버 데이터 우선 적용
           reloadFromStorage();
         }
       });
@@ -98,7 +104,15 @@ export default function App() {
     const latestContent = syncGetItem(STORAGE_KEY);
     const latestDocId = syncGetItem(DOC_ID_KEY);
     if (latestContent !== null && latestDocId) {
-      setState({ content: latestContent, docId: latestDocId });
+      // 서버 데이터가 있으면 그걸로 갱신 (pendingNew 해제)
+      setState({ content: latestContent, docId: latestDocId, pendingNew: false });
+    } else if (pendingNewRef.current) {
+      // 서버에도 데이터가 없으면 이제 새 문서를 실제로 저장
+      setState((prev) => {
+        syncSetItem(STORAGE_KEY, prev.content);
+        syncSetItem(DOC_ID_KEY, prev.docId);
+        return { ...prev, pendingNew: false };
+      });
     }
   }, []);
 
@@ -135,7 +149,13 @@ export default function App() {
   }, []);
 
   const handleChange = (value) => {
-    setState((prev) => ({ ...prev, content: value }));
+    setState((prev) => {
+      if (prev.pendingNew) {
+        // 처음 타이핑 시 pendingNew 해제하고 실제 저장
+        syncSetItem(DOC_ID_KEY, prev.docId);
+      }
+      return { ...prev, content: value, pendingNew: false };
+    });
     syncSetItem(STORAGE_KEY, value);
     debouncedUpsert(docId, value);
     setSyncState((prev) => (prev === 'offline' ? 'offline' : 'syncing'));
